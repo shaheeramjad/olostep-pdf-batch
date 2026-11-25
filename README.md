@@ -38,7 +38,7 @@ Scrape thousands of PDFs into an AI-ready Markdown dataset with Python and
 ### 1) Install
 
 ```bash
-git clone https://github.com/olostep-api/olostep-pdf-batch
+git clone https://github.com/shaheeramjad/olostep-pdf-batch
 cd olostep-pdf-batch
 python3.12 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e .
@@ -66,7 +66,7 @@ python -m olostep_pdf_batch extract --sample 50
 | `collect --source file --input my_pdfs.csv` | Use your own list (CSV or one URL per line) |
 | `run --concurrency 64` | Submit one batch, stream Markdown downloads, verify |
 | `resume` | Continue the batch saved in `output/batch.json` |
-| `report` | Re-verify the last run from disk (no API calls) |
+| `report [--no-timings]` | Re-verify the last run from disk (no API calls) |
 | `extract --sample 50` | Build `dataset.csv` from a sample (local, free) |
 
 | Option | Default | Description |
@@ -159,11 +159,11 @@ collect  ->  batch  ->  stream download  ->  verify  ->  extract
   `# Page 1`, `# Page 2`, ... with no text, and is reported as *likely
   scanned* so you can send it to an OCR tool.
 
-Details and examples are in [PDF_FEEDBACK.md](PDF_FEEDBACK.md).
 
 ## Structured dataset
 
-`extract` writes one row per PDF: `title`, `organisation`, `publication_date`,
+`extract` writes one row per PDF: `title`, `organisation`, `first_published`
+(GOV.UK's first-published date), `document_date` (a date found in the PDF),
 `pages`, `summary`.
 
 - **`--method local`** (default, free): GOV.UK already gives the exact title,
@@ -247,6 +247,15 @@ URL per line works too.
 ```bash
 python -m olostep_pdf_batch collect --source file --input my_pdfs.csv
 python -m olostep_pdf_batch run
+```
+
+To repeat the 100-PDF demo from the video exactly, use the list in
+`examples/govuk-100.csv` (100 GOV.UK PDFs, Open Government Licence; fits the
+100-URL batch limit of a new account):
+
+```bash
+python -m olostep_pdf_batch collect --source file --input examples/govuk-100.csv
+python -m olostep_pdf_batch run --rescrape
 ```
 
 In the UI, choose **Upload a CSV** or **Paste URLs** in the sidebar.

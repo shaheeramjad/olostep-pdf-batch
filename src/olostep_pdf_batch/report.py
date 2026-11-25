@@ -13,9 +13,15 @@ from rich.console import Console
 from rich.table import Table
 
 from .config import Paths
+from .download import BATCH_FAILED_REASON, PLACEHOLDER_REASON
 from .utils import atomic_write_text, format_duration, read_csv, write_csv
 from .verify import Verified
 
+# Short labels for the known failure reasons (full text is in failures.csv).
+FAILURE_LABELS = {
+    PLACEHOLDER_REASON: "No Markdown ('not-implemented')",
+    BATCH_FAILED_REASON: "Scrape failed in batch (no reason given)",
+}
 QUALITY_LABELS = {
     "ok": "Good text",
     "likely_scanned": "Likely scanned (needs OCR)",
@@ -64,6 +70,7 @@ class Summary:
     failed: int
     quality: dict[str, int]
     total_chars: int
+    failure_reasons: dict[str, int]  # error text -> number of PDFs
     rescraped: int  # PDFs recovered with single /scrapes calls
     timings: Timings
     timeline: list[list[float]] = field(default_factory=list)
@@ -98,6 +105,7 @@ def summarize(
         failed=len(rows) - len(good),
         quality={key: quality.get(key, 0) for key in QUALITY_LABELS},
         total_chars=sum(r.chars for r in good),
+        failure_reasons=dict(Counter(r.error for r in rows if not r.succeeded)),
         rescraped=len(set(rescraped) & {r.record.custom_id for r in good}),
         timings=timings,
         timeline=timeline,
@@ -136,15 +144,22 @@ def zip_markdown(paths: Paths) -> Path:
     return target
 
 
-def print_summary(console: Console, summary: Summary, paths: Paths) -> None:
-    """Render the final summary table."""
-    t = summary.timings
+def print_summary(
+    console: Console, summary: Summary, paths: Paths, *, timings: bool = True
+) -> None:
+    """Render the final summary table.
+
+    ``timings=False`` hides the time rows, e.g. when a run was interrupted
+    and resumed, so its wall-clock times are not meaningful.
+    """
     table = Table(title="Olostep PDF batch", show_header=False, min_width=46)
     table.add_column(style="bold")
     table.add_column(justify="right")
     table.add_row("PDFs submitted", f"{summary.submitted:,}")
     table.add_row("Succeeded", f"[green]{summary.succeeded:,}")
     table.add_row("Failed", f"[red]{summary.failed:,}" if summary.failed else "0")
+    for reason, count in sorted(summary.failure_reasons.items(), key=lambda kv: -kv[1]):
+        table.add_row(f"  {FAILURE_LABELS.get(reason, reason)[:40]}", f"{count:,}")
     table.add_row("Success rate", f"{summary.success_rate:.1%}")
     if summary.rescraped:
         table.add_row("  Recovered by re-scrape", f"{summary.rescraped:,}")
@@ -152,6 +167,15 @@ def print_summary(console: Console, summary: Summary, paths: Paths) -> None:
     for key, label in QUALITY_LABELS.items():
         table.add_row(f"  {label}", f"{summary.quality[key]:,}")
     table.add_row("Characters of text", f"{summary.total_chars:,}")
+    if timings:
+        _add_timing_rows(table, summary.timings)
+    console.print(table)
+    console.print(f"Markdown: [cyan]{paths.markdown_dir}/")
+    console.print(f"Reports:  [cyan]{paths.manifest_csv}, {paths.failures_csv.name}, "
+                  f"{paths.summary_json.name}")  # fmt: skip
+
+
+def _add_timing_rows(table: Table, t: Timings) -> None:
     table.add_section()
     table.add_row("Collect URLs", format_duration(t.collect))
     table.add_row("Create batch", format_duration(t.batch_create))
@@ -162,10 +186,6 @@ def print_summary(console: Console, summary: Summary, paths: Paths) -> None:
     if t.rescrape:
         table.add_row("Re-scrape failures", format_duration(t.rescrape))
     table.add_row("Total", f"[bold]{format_duration(t.total)}")
-    console.print(table)
-    console.print(f"Markdown: [cyan]{paths.markdown_dir}/")
-    console.print(f"Reports:  [cyan]{paths.manifest_csv}, {paths.failures_csv.name}, "
-                  f"{paths.summary_json.name}")  # fmt: skip
 
 
 def _manifest_row(r: Verified) -> list[object]:

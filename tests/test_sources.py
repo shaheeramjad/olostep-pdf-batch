@@ -101,3 +101,18 @@ def test_records_round_trip_through_csv(tmp_path) -> None:
     path = tmp_path / "urls.csv"
     save_records(path, records)
     assert load_records(path) == records
+
+
+def test_saved_list_round_trips_through_file_source(tmp_path) -> None:
+    """A list saved by `collect` keeps its metadata when used as --input."""
+    record = PdfRecord(
+        f"{ASSETS}/1/a.pdf",
+        title="Annual report",
+        organisation="Department for Example",
+        published="2025-07-03",
+        pages=12,
+        file_size_bytes=2048,
+    )
+    path = tmp_path / "pdf_urls.csv"
+    save_records(path, [record])
+    assert parse_text(path.read_text()) == [record]

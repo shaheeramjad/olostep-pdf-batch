@@ -71,19 +71,21 @@ def save_records(path: Path, records: list[PdfRecord]) -> None:
 
 def load_records(path: Path) -> list[PdfRecord]:
     """Read records written by :func:`save_records`."""
-    return [_record_from_row(row) for row in read_csv(path)]
+    return [record_from_row(row) for row in read_csv(path)]
 
 
-def _record_from_row(row: dict[str, str]) -> PdfRecord:
+def record_from_row(row: dict[str, str]) -> PdfRecord:
+    """Build a record from a CSV row; optional columns may be missing."""
+    text = {key: (value or "").strip() for key, value in row.items() if key}
     return PdfRecord(
-        pdf_url=row["pdf_url"],
-        title=row.get("title", ""),
-        publication_url=row.get("publication_url", ""),
-        publication_title=row.get("publication_title", ""),
-        organisation=row.get("organisation", ""),
-        published=row.get("published", ""),
-        pages=_int_or_none(row.get("pages")),
-        file_size_bytes=_int_or_none(row.get("file_size_bytes")),
+        pdf_url=text["pdf_url"],
+        title=text.get("title", ""),
+        publication_url=text.get("publication_url", ""),
+        publication_title=text.get("publication_title", ""),
+        organisation=text.get("organisation", ""),
+        published=text.get("published", ""),
+        pages=_int_or_none(text.get("pages")),
+        file_size_bytes=_int_or_none(text.get("file_size_bytes")),
     )
 
 

@@ -24,7 +24,7 @@ DEFAULT_LIMIT = 5_000
 SHUFFLE_SEED = 42  # fixed so the same --limit always picks the same PDFs
 USER_AGENT = (
     f"olostep-pdf-batch/{__version__} "
-    "(+https://github.com/olostep-api/olostep-pdf-batch)"
+    "(+https://github.com/shaheeramjad/olostep-pdf-batch)"
 )
 GOVUK_BASE = "https://www.gov.uk"
 # Publication types that usually carry PDF reports. Searched together (OR).

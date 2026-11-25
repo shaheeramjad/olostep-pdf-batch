@@ -33,8 +33,13 @@ from olostep_pdf_batch.config import (
 )
 from olostep_pdf_batch.download import PLACEHOLDER_REASON
 from olostep_pdf_batch.extract import extract_dataset, pick_sample
-from olostep_pdf_batch.pipeline import BATCH_FAILED_REASON, collect
-from olostep_pdf_batch.report import QUALITY_LABELS, load_summary, zip_markdown
+from olostep_pdf_batch.pipeline import collect
+from olostep_pdf_batch.report import (
+    FAILURE_LABELS,
+    QUALITY_LABELS,
+    load_summary,
+    zip_markdown,
+)
 from olostep_pdf_batch.utils import silence_sdk_warnings
 from olostep_pdf_batch.verify import PAGE_MARKER, strip_front_matter
 from ui import components as ui
@@ -49,11 +54,6 @@ SOURCES = {
     "paste": "Paste URLs",
 }
 GOOD_SUCCESS_RATE = 0.95  # below this the success tile is not shown in green
-# Short reason labels that fit a table column; the full text is in failures.csv.
-REASON_LABELS = {
-    PLACEHOLDER_REASON: "No Markdown ('not-implemented')",
-    BATCH_FAILED_REASON: "Scrape failed (no reason given)",
-}
 HOW_IT_WORKS = [
     ("list", "Collect", "List public PDFs from GOV.UK with its Search and Content "
      "APIs, or bring your own CSV. Each gets a stable custom_id."),
@@ -468,14 +468,14 @@ def _failures(failed: pd.DataFrame) -> None:
         return
     counts = failed["error"].value_counts()
     ui.chips(
-        [(f"{n:,}", REASON_LABELS.get(reason, reason)) for reason, n in counts.items()]
+        [(f"{n:,}", FAILURE_LABELS.get(reason, reason)) for reason, n in counts.items()]
     )
     if PLACEHOLDER_REASON in counts:
         ui.note(
             "Tip: turn on re-scrape in Settings and resume the run to retry these "
             "one by one."
         )
-    shown = failed.assign(error=failed["error"].map(lambda r: REASON_LABELS.get(r, r)))
+    shown = failed.assign(error=failed["error"].map(lambda r: FAILURE_LABELS.get(r, r)))
     st.dataframe(
         shown[
             ["title", "organisation", "error", "pages", "file_size_bytes", "pdf_url"]
@@ -588,14 +588,16 @@ def dataset_window(paths: Paths) -> None:
             ui.empty("No dataset yet. Start with a small sample.")
             return
         st.dataframe(
-            dataset[["title", "organisation", "publication_date", "pages", "summary"]],
+            dataset[["title", "organisation", "first_published", "pages", "summary"]],
             hide_index=True,
             use_container_width=True,
             height=300,
             column_config={
                 "title": st.column_config.TextColumn("Title", width="medium"),
                 "organisation": st.column_config.TextColumn("Organisation"),
-                "publication_date": st.column_config.TextColumn("Date", width="small"),
+                "first_published": st.column_config.TextColumn(
+                    "First published (GOV.UK)", width="small"
+                ),
                 "pages": st.column_config.NumberColumn("Pages", width="small"),
                 "summary": st.column_config.TextColumn("Summary", width="large"),
             },

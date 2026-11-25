@@ -1,5 +1,6 @@
-# Secrets
+# Secrets and private notes
 .env
+PDF_FEEDBACK.md
 
 # Generated data
 data/

@@ -28,6 +28,7 @@ from .config import (
     RunSettings,
 )
 from .download import (
+    BATCH_FAILED_REASON,
     PLACEHOLDER_REASON,
     Downloader,
     DownloadResult,
@@ -46,7 +47,6 @@ from .verify import verify
 logger = logging.getLogger(__name__)
 
 SOURCES = ("govuk", "file")
-BATCH_FAILED_REASON = "scrape failed in batch (the API gives no reason)"
 
 
 # --- Collect -----------------------------------------------------------------

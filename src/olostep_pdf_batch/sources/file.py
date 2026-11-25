@@ -2,8 +2,9 @@
 
 Accepted input:
 
-* a CSV with a ``pdf_url`` or ``url`` column (``title`` and
-  ``publication_url`` columns are used when present), or
+* a CSV with a ``pdf_url`` or ``url`` column; any other columns of
+  ``data/pdf_urls.csv`` (``title``, ``organisation``, ``published``,
+  ``pages``, ...) are kept when present, or
 * plain text with one URL per line (``#`` starts a comment).
 
 URLs don't have to end in ``.pdf`` (many PDF links don't), but they must be
@@ -17,7 +18,7 @@ import io
 import logging
 from pathlib import Path
 
-from . import PdfRecord, is_http_url
+from . import PdfRecord, is_http_url, record_from_row
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +51,9 @@ def _from_csv(text: str, url_column: str) -> list[PdfRecord]:
         if not is_http_url(url):
             _warn_skipped(url)
             continue
-        records.append(
-            PdfRecord(
-                pdf_url=url,
-                title=(row.get("title") or "").strip(),
-                publication_url=(row.get("publication_url") or "").strip(),
-            )
-        )
+        # Keep every known column (title, organisation, pages, ...), so a list
+        # saved by `collect` can be fed back in without losing metadata.
+        records.append(record_from_row({**row, "pdf_url": url}))
     return records
 
 

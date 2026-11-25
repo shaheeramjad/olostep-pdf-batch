@@ -86,7 +86,8 @@ class DatasetRow:
     custom_id: str
     title: str
     organisation: str
-    publication_date: str
+    first_published: str  # from the source (GOV.UK: when the page was first published)
+    document_date: str  # a date found in the PDF text itself
     pages: str
     summary: str
     pdf_url: str
@@ -133,7 +134,8 @@ def extract_local(record: PdfRecord, markdown: str) -> DatasetRow:
         custom_id=record.custom_id,
         title=record.title or first_heading(body),
         organisation=record.organisation,
-        publication_date=record.published or first_date(body),
+        first_published=record.published,
+        document_date=first_date(body),
         pages=str(record.pages or ""),
         summary=first_sentence(body),
         pdf_url=record.pdf_url,
@@ -199,7 +201,8 @@ async def _extract_with_olostep(
                 custom_id=record.custom_id,
                 title=str(data.get("title") or ""),
                 organisation=str(data.get("organisation") or ""),
-                publication_date=str(data.get("publication_date") or ""),
+                first_published=record.published,
+                document_date=str(data.get("publication_date") or ""),
                 pages=str(data.get("page_count") or ""),
                 summary=_truncate(str(data.get("summary") or "")),
                 pdf_url=record.pdf_url,

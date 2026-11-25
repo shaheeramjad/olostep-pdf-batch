@@ -84,7 +84,9 @@ def cmd_collect(args: argparse.Namespace) -> int:
     if args.source == "file" and not args.input:
         raise SystemExit("error: --source file needs --input my_pdfs.csv")
     with build_progress() as progress:
-        task = progress.add_task("Collecting", total=args.limit)
+        # A file is read in one go, so only GOV.UK has progress worth a bar total.
+        total = args.limit if args.source == "govuk" else None
+        task = progress.add_task("Collecting", total=total)
         records = asyncio.run(
             collect(
                 args.source,
@@ -119,7 +121,9 @@ def cmd_run(args: argparse.Namespace, *, resume: bool) -> int:
 def cmd_report(args: argparse.Namespace) -> int:
     """Re-verify the last run from disk and print the summary."""
     paths = Paths(args.out)
-    print_summary(console, report_from_disk(paths), paths)
+    with console.status("Verifying every Markdown file on disk..."):
+        summary = report_from_disk(paths)
+    print_summary(console, summary, paths, timings=not args.no_timings)
     return 0
 
 
@@ -145,10 +149,17 @@ def cmd_extract(args: argparse.Namespace) -> int:
 
 
 def _print_dataset_preview(rows: list, limit: int = 5) -> None:
-    table = Table("Title", "Organisation", "Date", "Pages", "Summary", width=120)
+    table = Table(
+        "Title",
+        "Organisation",
+        "First published (GOV.UK)",
+        "Pages",
+        "Summary",
+        width=120,
+    )
     for row in rows[:limit]:
-        table.add_row(row.title, row.organisation, row.publication_date, row.pages,
-                      row.summary)  # fmt: skip
+        table.add_row(row.title, row.organisation, row.first_published, row.pages,
+                      row.summary or "—")  # fmt: skip
     console.print(table)
 
 
@@ -184,7 +195,13 @@ def build_parser() -> argparse.ArgumentParser:
         )
         _add_out(p)
 
-    _add_out(sub.add_parser("report", help="re-verify the last run from disk"))
+    p = sub.add_parser("report", help="re-verify the last run from disk")
+    p.add_argument(
+        "--no-timings",
+        action="store_true",
+        help="hide the time rows (e.g. after a resume)",
+    )
+    _add_out(p)
 
     p = sub.add_parser("extract", help="build dataset.csv from a sample")
     p.add_argument("--sample", type=_positive, default=DEFAULT_SAMPLE)

@@ -27,9 +27,10 @@ logger = logging.getLogger(__name__)
 HOSTED_FETCH_TIMEOUT = 60  # seconds
 # Seen in real batch results: the item is "completed" with success=true, but
 # the content is this literal string instead of Markdown. A single /scrapes
-# call on the same PDF returns the real text (see PDF_FEEDBACK.md).
+# call on the same PDF usually returns the real text (`--rescrape`).
 PLACEHOLDER_CONTENT = frozenset({"not-implemented"})
 PLACEHOLDER_REASON = "Olostep returned 'not-implemented' instead of Markdown"
+BATCH_FAILED_REASON = "scrape failed in batch (the API gives no reason)"
 
 
 class NoContentError(Exception):
