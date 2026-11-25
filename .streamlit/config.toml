@@ -1,0 +1,17 @@
+# Mirrors ui/theme.py (tests/test_theme.py checks they match).
+[theme]
+base = "light"
+primaryColor = "#1369E6"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#FAFAFA"
+textColor = "#333333"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
+
+[server]
+enableStaticServing = true  # serves ./static at app/static/ (logo, hero image)
+
+[browser]
+gatherUsageStats = false
